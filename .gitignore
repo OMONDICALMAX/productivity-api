@@ -1,0 +1,24 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+
+# Flask instance data
+instance/
+server/instance/
+
+# Pytest
+.pytest_cache/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
