@@ -7,7 +7,7 @@ from server.app import app, db
 def client():
     app.config["TESTING"] = True
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["JWT_SECRET_KEY"] = "test-secret-key"
+    app.config["JWT_SECRET_KEY"] = "test-secret-key-that-is-at-least-32-bytes-long"
 
     with app.app_context():
         db.create_all()
@@ -109,7 +109,9 @@ def test_signup_missing_fields(client):
 
     data = response.get_json()
 
-    assert "error" in data
+    assert "errors" in data
+    assert "email" in data["errors"]
+    assert "password" in data["errors"]
 
 
 def test_duplicate_username(client):
@@ -187,3 +189,29 @@ def test_invalid_login(client):
     data = response.get_json()
 
     assert data["error"] == "Invalid username or password"
+
+def test_login_missing_fields(client):
+    response = client.post(
+        "/login",
+        json={
+            "username": "someuser"
+        }
+    )
+
+    assert response.status_code == 400
+
+    data = response.get_json()
+
+    assert "error" in data
+
+
+def test_login_missing_body(client):
+    response = client.post(
+        "/login"
+    )
+
+    assert response.status_code == 400
+
+    data = response.get_json()
+
+    assert "error" in data

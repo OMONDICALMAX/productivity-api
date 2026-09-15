@@ -68,7 +68,12 @@ def signup():
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+
+    if not data:
+        return {
+            "error": "Request body is required"
+        }, 400
 
     username = data.get("username")
     password = data.get("password")
@@ -107,7 +112,7 @@ def login():
 def me():
     user_id = get_jwt_identity()
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user:
         return {

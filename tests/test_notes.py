@@ -7,7 +7,7 @@ from server.app import app, db
 def client():
     app.config["TESTING"] = True
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["JWT_SECRET_KEY"] = "test-secret-key"
+    app.config["JWT_SECRET_KEY"] = "test-secret-key-that-is-at-least-32-bytes-long"
 
     with app.app_context():
         db.create_all()
