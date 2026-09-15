@@ -229,4 +229,6 @@ JWT secrets are stored in environment variables.
 .env is excluded from version control.
 License
 
-This project was created as part of a Moringa School Software Engineering course project.
+This project was created by Calmax Omondi For Educational Purposes
+
+Rendered through Render, link https://productivity-api-trd7.onrender.com
