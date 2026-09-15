@@ -3,6 +3,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from server.app import app, db
 from server.models import Note
+from server.schemas import NoteSchema
+
+note_schema = NoteSchema()
 
 
 @app.route("/notes", methods=["POST"])
@@ -12,13 +15,15 @@ def create_note():
 
     data = request.get_json()
 
-    title = data.get("title")
-    content = data.get("content")
+    errors = note_schema.validate(data)
 
-    if not title or not content:
+    if errors:
         return {
-            "error": "title and content are required"
+            "errors": errors
         }, 400
+
+    title = data["title"]
+    content = data["content"]
 
     note = Note(
         title=title,
@@ -46,27 +51,6 @@ def create_note():
 def get_notes():
     user_id = get_jwt_identity()
 
-    notes = Note.query.filter_by(user_id=int(user_id)).all()
-
-    return {
-        "notes": [
-            {
-                "id": note.id,
-                "title": note.title,
-                "content": note.content,
-                "user_id": note.user_id,
-                "created_at": note.created_at.isoformat(),
-                "updated_at": note.updated_at.isoformat()
-            }
-            for note in notes
-        ]
-    }, 200
-
-@app.route("/notes", methods=["GET"])
-@jwt_required()
-def get_notes():
-    user_id = get_jwt_identity()
-
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 5, type=int)
 
@@ -85,17 +69,7 @@ def get_notes():
     )
 
     return {
-        "notes": [
-            {
-                "id": note.id,
-                "title": note.title,
-                "content": note.content,
-                "user_id": note.user_id,
-                "created_at": note.created_at.isoformat(),
-                "updated_at": note.updated_at.isoformat()
-            }
-            for note in pagination.items
-        ],
+        "notes": note_schema.dump(pagination.items, many=True),
         "pagination": {
             "page": pagination.page,
             "per_page": pagination.per_page,
@@ -105,6 +79,26 @@ def get_notes():
             "has_prev": pagination.has_prev
         }
     }, 200
+
+@app.route("/notes/<int:note_id>", methods=["GET"])
+@jwt_required()
+def get_note(note_id):
+    user_id = get_jwt_identity()
+
+    note = Note.query.filter_by(
+        id=note_id,
+        user_id=int(user_id)
+    ).first()
+
+    if not note:
+        return {
+            "error": "Note not found"
+        }, 404
+
+    return {
+        "note": note_schema.dump(note)
+    }, 200
+
 
 @app.route("/notes/<int:note_id>", methods=["PATCH"])
 @jwt_required()
@@ -123,29 +117,32 @@ def update_note(note_id):
 
     data = request.get_json()
 
+    if not data:
+        return {
+            "error": "Request body is required"
+        }, 400
+
+    errors = note_schema.validate(
+        data,
+        partial=True
+    )
+
+    if errors:
+        return {
+            "errors": errors
+        }, 400
+
     if "title" in data:
         note.title = data["title"]
 
     if "content" in data:
         note.content = data["content"]
 
-    if not note.title or not note.content:
-        return {
-            "error": "title and content cannot be empty"
-        }, 400
-
     db.session.commit()
 
     return {
         "message": "Note updated successfully",
-        "note": {
-            "id": note.id,
-            "title": note.title,
-            "content": note.content,
-            "user_id": note.user_id,
-            "created_at": note.created_at.isoformat(),
-            "updated_at": note.updated_at.isoformat()
-        }
+        "note": note_schema.dump(note)
     }, 200
 
 @app.route("/notes/<int:note_id>", methods=["DELETE"])

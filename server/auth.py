@@ -1,21 +1,33 @@
 from flask import request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+
 from server.app import app, db, bcrypt
 from server.models import User
+from server.schemas import UserSchema
+
+user_schema = UserSchema()
 
 
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json()
 
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
-
-    if not username or not email or not password:
+    if not data:
         return {
-            "error": "username, email, and password are required"
+            "error": "Request body is required"
         }, 400
+
+    try:
+        validated_data = user_schema.load(data)
+    except ValidationError as err:
+        return {
+            "errors": err.messages
+        }, 400
+
+    username = validated_data["username"]
+    email = validated_data["email"]
+    password = validated_data["password"]
 
     existing_user = User.query.filter_by(username=username).first()
 
